@@ -38,11 +38,6 @@ public class Request
         return requestId;
     }
     
-    public static Object[] args(Object... objects)
-    {
-        return objects;
-    }
-    
     public byte[] toByteArray()
     {
         Object obj = new Object[] { new Object[] { requestId, method, args, kwargs } };

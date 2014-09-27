@@ -1,10 +1,12 @@
 package deluge.net;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
@@ -53,15 +55,25 @@ public class Connection
                 {                
                     while(true)
                     {          
-                        byte[] buffer = new byte[1024];
                         
                         InputStream inputStream = mySocket.getInputStream();
-                        while (inputStream.read(buffer) != -1)
+                        
+                        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                        
+                        int bytesRead;
+                        byte[] buffer = new byte[1024];
+                        while ((bytesRead = inputStream.read(buffer)) != -1)
                         {
                             try
                             {
-                                byte[] unpacked = decompress(buffer);
-                                cb.dataRecived(unpacked);
+                                baos.write(buffer);
+                                                              
+                                if(bytesRead < 1024)
+                                {
+                                    byte[] unpacked = decompress(baos.toByteArray());
+                                    baos.reset();
+                                    cb.dataRecived(unpacked);
+                                }
                             }
                             catch (DataFormatException e)
                             {
@@ -69,6 +81,7 @@ public class Connection
                                 e.printStackTrace();
                             }
                         }
+
                     }                    
                 }
                 catch (UnsupportedEncodingException e)
@@ -88,7 +101,7 @@ public class Connection
     
     private static byte[] compress(byte[] input)
     {
-        byte[] output = new byte[100];
+        byte[] output = new byte[1024];
         
         Deflater compresser = new Deflater(Deflater.DEFAULT_COMPRESSION);
 
@@ -102,12 +115,25 @@ public class Connection
 
     private static byte[] decompress(byte[] input) throws DataFormatException
     {
-        Inflater decompresser = new Inflater();
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        
+        Inflater decompresser = new Inflater();        
         decompresser.setInput(input, 0, input.length);
-        byte[] result = new byte[255];            
-        int resultLength = decompresser.inflate(result);
+        while(!decompresser.finished())
+        {
+            byte[] result = new byte[1024];
+            int resultLength = decompresser.inflate(result);
+            baos.write(result, 0, resultLength);            
+        }
         decompresser.end();
-        return Arrays.copyOf(result, resultLength);
+        
+        byte[] result = baos.toByteArray();
+        try
+        {
+            baos.close();
+        }
+        catch (IOException e) { }
+        return result;
     }
 
 }

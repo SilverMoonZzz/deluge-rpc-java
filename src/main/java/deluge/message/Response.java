@@ -1,5 +1,7 @@
 package deluge.message;
 
+import java.util.Map;
+
 public class Response
 {
     private Object[] returnValue;
@@ -34,6 +36,11 @@ public class Response
     public Object[] getReturnValue()
     {
         return returnValue;
+    }
+
+    public Map<String, Map<String, String>> getTorrentInfo()
+    {
+        return (Map<String, Map<String, String>>)returnValue[0];
     }
     
     @Override

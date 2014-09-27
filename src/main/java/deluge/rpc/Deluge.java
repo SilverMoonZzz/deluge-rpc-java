@@ -1,5 +1,6 @@
 package deluge.rpc;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.UnknownHostException;
 import java.security.KeyManagementException;
@@ -17,6 +18,7 @@ import deluge.message.Response;
 import deluge.message.MessageData.MessageType;
 import deluge.net.Connection;
 import deluge.net.Connection.DataCallback;
+import deluge.net.TorrentField;
 
 public class Deluge implements DataCallback
 {
@@ -84,7 +86,7 @@ public class Deluge implements DataCallback
 
     public Future<Response> login(String username, String password)
     {
-        Request req = new Request("daemon.login", Request.args(username, password));  
+        Request req = new Request("daemon.login", Util.objects(username, password));  
         return sendRequest(req);
     }
     
@@ -93,4 +95,26 @@ public class Deluge implements DataCallback
         Request req = new Request("daemon.info");        
         return sendRequest(req);
     }
+
+    // returns String[] with torrentIds
+    public Future<Response> getSessionState()
+    {
+        Request req = new Request("core.get_session_state");        
+        return sendRequest(req);
+    }
+    
+    // filter<"State", "Active">
+    // filter<"Id", String[] ids>
+    public Future<Response> getTorrentStatus(Map<Object, Object> filter, TorrentField[] fields)
+    {
+        Object[] fieldNames = new Object[fields.length];
+        for(int i=0; i<fields.length; i++)
+        {
+            fieldNames[i] = fields[i].value;
+        }
+        
+        Request req = new Request("core.get_torrents_status", Util.objects(filter, fieldNames));        
+        return sendRequest(req);
+    }
+    
 }
