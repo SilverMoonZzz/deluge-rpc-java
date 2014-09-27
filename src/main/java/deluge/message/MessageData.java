@@ -60,7 +60,19 @@ public class MessageData
         if(isType(MessageType.RPC_RESPONSE))
         {
             // [message_type, request_id, [return_value]]
-            Object[] returnValue = (Object[])data[2];
+            Object[] returnValue = null;
+            if(data[2] == null)
+            {
+                returnValue = new Object[0];
+            }
+            else if(data[2] instanceof Object[])
+            {
+                returnValue = (Object[])data[2];                
+            }
+            else
+            {
+                returnValue = new Object[] { data[2] };
+            }
             return new Response(returnValue); 
         }
         else if(isType(MessageType.RPC_ERROR))
