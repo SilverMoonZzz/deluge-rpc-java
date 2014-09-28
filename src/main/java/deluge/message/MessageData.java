@@ -78,9 +78,11 @@ public class MessageData
         else if(isType(MessageType.RPC_ERROR))
         {
             // [message_type, request_id, exception_type, exception_msg, traceback]
-            String exceptionType = (String)data[2];
-            String exceptionMsg  = (String)data[3];
-            String traceback     = (String)data[4];
+            Object[] error = (Object[])data[2];
+            
+            String exceptionType = (String)error[0];
+            String exceptionMsg  = (String)error[1];
+            String traceback     = (String)error[2];
             Error err = Error.error(exceptionType, exceptionMsg, traceback);
             return new Response(err);
         }

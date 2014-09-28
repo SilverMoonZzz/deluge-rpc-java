@@ -26,7 +26,7 @@ public class FutureResponse implements Future<Response>
 
     public Response get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException
     {
-        if(latch.await(timeout, unit))
+        if(!latch.await(timeout, unit))
         {
             throw new TimeoutException();            
         }

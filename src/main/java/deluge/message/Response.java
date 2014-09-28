@@ -47,13 +47,26 @@ public class Response
     public String toString()
     {
         String str = "Response { ";
-        for(int i=0; i<returnValue.length; i++)
-        for(Object obj : returnValue)
+        
+        if(hasError())
         {
-            str += obj.toString();
-            if(i<returnValue.length-1)
-                str += ",";            
-        }            
+            str += getError().exceptionType;
+            str += ": ";
+            str += getError().exceptionMsg;
+        }
+        else
+        {
+            for(int i=0; i<returnValue.length; i++)
+            {
+                for(Object obj : returnValue)
+                {
+                    str += obj.toString();
+                    if(i<returnValue.length-1)
+                        str += ",";            
+                }            
+            }            
+        }
+        
         str += " }";
         return str;
     }

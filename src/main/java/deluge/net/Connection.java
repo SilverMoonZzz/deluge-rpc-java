@@ -10,11 +10,19 @@ import java.nio.ByteBuffer;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
+import java.util.Queue;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.zip.DataFormatException;
 import java.util.zip.Deflater;
 import java.util.zip.Inflater;
 
 import javax.net.ssl.SSLSocket;
+
+import deluge.message.Event;
 
 public class Connection
 {
@@ -23,25 +31,101 @@ public class Connection
         public void dataRecived(byte[] data);
     }
     
+    private BlockingQueue<byte[]> queue = new ArrayBlockingQueue<byte[]>(50);
+    
     private SSLSocket mySocket;
     String myAddress;
     int myPort;
+    Thread sender = null;
+    public final CountDownLatch latch = new CountDownLatch(1);
     
-    public Connection(String address, int port) throws UnknownHostException, IOException, KeyManagementException, NoSuchAlgorithmException
+    public Connection(String address, int port)
     {
         myAddress = address;
         myPort = port;
+    }
 
-        mySocket = SSL3Socket.createSSLv3Socket(myAddress, myPort);
-        mySocket.startHandshake();
+    private void createSocket()
+    {
+        if(mySocket == null)
+        {
+            try
+            {
+                mySocket = SSL3Socket.createSSLv3Socket(myAddress, myPort);
+                mySocket.startHandshake();
+            }
+            catch (Exception e1)
+            {
+                e1.printStackTrace();
+                mySocket = null;
+            }
+        }
+        latch.countDown();
     }
     
     public void send(byte[] request) throws IOException
     {
-        byte[] packedData = compress(request);
-        OutputStream out = mySocket.getOutputStream();
-        out.write(packedData);
-        out.flush();
+        if(sender == null)
+        {
+            sender();
+        }
+        try
+        {
+            queue.put(request);
+        }
+        catch (InterruptedException e)
+        {
+            e.printStackTrace();
+        }
+    }
+
+    public void sender() throws IOException
+    {   
+        sender =  new Thread(new Runnable() {
+            
+            public void run()
+            {
+                createSocket();
+                System.out.println("Sending Thread started");
+                try
+                {                
+                    while(mySocket != null)
+                    {
+                        byte[] packedData;
+                        try
+                        {
+                            packedData = compress(queue.take());
+                            OutputStream out = mySocket.getOutputStream();
+                            out.write(packedData);
+                            out.flush();
+                        }
+                        catch (InterruptedException e)
+                        {
+                            e.printStackTrace();
+                        }
+                    }
+                        
+                }
+                catch (IOException e)
+                {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
+
+            }
+        });
+        sender.start();
+
+        try
+        {
+            latch.await(3, TimeUnit.SECONDS);
+        }
+        catch (InterruptedException e)
+        { }
+        if(mySocket == null)
+        {
+            throw new IOException();            
+        }
     }
     
     public void listen(final DataCallback cb) throws IOException
@@ -50,12 +134,12 @@ public class Connection
             
             public void run()
             {
-                System.out.println("Listening on socket");
+                createSocket();
+                System.out.println("Listening Thread started");
                 try
-                {                
-                    while(true)
-                    {          
-                        
+                {
+                    while(mySocket != null)
+                    {
                         InputStream inputStream = mySocket.getInputStream();
                         
                         ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -96,16 +180,33 @@ public class Connection
                 }
 
             }
-        }).start();     
+        }).start();
+        
+
+        try
+        {
+            latch.await(3, TimeUnit.SECONDS);
+        }
+        catch (InterruptedException e)
+        { }
+        if(mySocket == null)
+        {
+            throw new IOException();            
+        }
     }
     
-    private static byte[] compress(byte[] input)
+    private static byte[] compress(byte[] data)
     {
+        if(data == null)
+        {
+            throw new IllegalArgumentException("data is null");            
+        }
+        
         byte[] output = new byte[1024];
         
         Deflater compresser = new Deflater(Deflater.DEFAULT_COMPRESSION);
-
-        compresser.setInput(input);
+        
+        compresser.setInput(data);
         compresser.finish();
         int compressedDataLength = compresser.deflate(output);
         compresser.end();

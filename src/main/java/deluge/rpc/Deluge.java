@@ -1,6 +1,6 @@
 package deluge.rpc;
 
-import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.net.UnknownHostException;
 import java.security.KeyManagementException;
@@ -10,7 +10,6 @@ import java.util.Map;
 import java.util.concurrent.Future;
 
 import se.dimovski.rencode.Rencode;
-import deluge.message.Event;
 import deluge.message.FutureResponse;
 import deluge.message.MessageData;
 import deluge.message.Request;
@@ -33,6 +32,12 @@ public class Deluge implements DataCallback
         eventQueue = new EventQueue();
         pendingRequests = new HashMap<Integer, FutureResponse>();
         conn.listen(this);
+    }
+    public static Deluge connect(String address) throws KeyManagementException, UnknownHostException, NoSuchAlgorithmException, IOException
+    {
+        String[] parts = address.split(":");
+        int port = parts.length < 2 ? 58846 : Integer.parseInt(parts[1]);
+        return connect(parts[0], port);
     }
     
     public static Deluge connect(String address, int port) throws KeyManagementException, UnknownHostException, IOException, NoSuchAlgorithmException
@@ -110,11 +115,19 @@ public class Deluge implements DataCallback
         Object[] fieldNames = new Object[fields.length];
         for(int i=0; i<fields.length; i++)
         {
-            fieldNames[i] = fields[i].value;
+            fieldNames[i] = fields[i].toString();
         }
         
         Request req = new Request("core.get_torrents_status", Util.objects(filter, fieldNames));        
         return sendRequest(req);
     }
     
+    /*
+     * encodedContents Base 64 encoded string of the torrent file contents.
+     */
+    public Future<Response> addTorrentFile(String name, String encodedContents, Map<String, Object> options)
+    {
+        Request req = new Request("core.add_torrent_file", Util.objects(name, encodedContents, options));
+        return sendRequest(req);
+    }
 }

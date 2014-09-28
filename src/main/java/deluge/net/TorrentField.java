@@ -62,9 +62,16 @@ public enum TorrentField
     TOTAL_SIZE("total_size"),
     TRACKER_HOST("tracker_host");
 
-    public final String value;
+    private final String value;
+    
     TorrentField(String str)
     {
         value = str;
+    }
+    
+    @Override
+    public String toString()
+    {
+        return value;
     }
 }
