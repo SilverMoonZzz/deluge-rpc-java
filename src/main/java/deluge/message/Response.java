@@ -38,9 +38,9 @@ public class Response
         return returnValue;
     }
 
-    public Map<String, Map<String, String>> getTorrentInfo()
+    public Map<String, Map<String, Object>> getTorrentInfo()
     {
-        return (Map<String, Map<String, String>>)returnValue[0];
+        return (Map<String, Map<String, Object>>)returnValue[0];
     }
     
     @Override

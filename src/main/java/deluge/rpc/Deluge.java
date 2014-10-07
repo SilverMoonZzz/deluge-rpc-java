@@ -1,6 +1,5 @@
 package deluge.rpc;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.UnknownHostException;
 import java.security.KeyManagementException;
@@ -25,7 +24,7 @@ public class Deluge implements DataCallback
     private EventQueue eventQueue;
     
     private Map<Integer, FutureResponse> pendingRequests;
-
+    
     private Deluge(Connection c) throws IOException
     {
         conn = c;
@@ -33,6 +32,7 @@ public class Deluge implements DataCallback
         pendingRequests = new HashMap<Integer, FutureResponse>();
         conn.listen(this);
     }
+    
     public static Deluge connect(String address) throws KeyManagementException, UnknownHostException, NoSuchAlgorithmException, IOException
     {
         String[] parts = address.split(":");
@@ -72,7 +72,9 @@ public class Deluge implements DataCallback
     {  
         try
         {
-            conn.send(request.toByteArray());
+            byte[] data = request.toByteArray();
+            System.out.println("toByteArray: "+data.length);
+            conn.send(data);
         }
         catch (IOException e)
         {
@@ -121,13 +123,31 @@ public class Deluge implements DataCallback
         Request req = new Request("core.get_torrents_status", Util.objects(filter, fieldNames));        
         return sendRequest(req);
     }
-    
+
     /*
      * encodedContents Base 64 encoded string of the torrent file contents.
      */
     public Future<Response> addTorrentFile(String name, String encodedContents, Map<String, Object> options)
     {
         Request req = new Request("core.add_torrent_file", Util.objects(name, encodedContents, options));
+        return sendRequest(req);
+    }
+
+    public Future<Response> removeTorrent(String torrentId, Boolean removeData)
+    {
+        Request req = new Request("core.remove_torrent", Util.objects(torrentId, removeData));
+        return sendRequest(req);
+    }
+
+    public Future<Response> pause_torrent(String[] torrentIds)
+    {
+        Request req = new Request("core.pause_torrent", Util.objects((Object)torrentIds));
+        return sendRequest(req);
+    }
+    
+    public Future<Response> resume_torrent(String[] torrentIds)
+    {
+        Request req = new Request("core.resume_torrent", Util.objects((Object)torrentIds) );
         return sendRequest(req);
     }
 }

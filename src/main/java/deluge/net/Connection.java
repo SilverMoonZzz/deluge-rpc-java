@@ -18,6 +18,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.DataFormatException;
 import java.util.zip.Deflater;
+import java.util.zip.DeflaterOutputStream;
 import java.util.zip.Inflater;
 
 import javax.net.ssl.SSLSocket;
@@ -94,7 +95,9 @@ public class Connection
                         byte[] packedData;
                         try
                         {
-                            packedData = compress(queue.take());
+                            byte[] x = queue.take();
+                            packedData = compress(x);
+
                             OutputStream out = mySocket.getOutputStream();
                             out.write(packedData);
                             out.flush();
@@ -195,46 +198,43 @@ public class Connection
         }
     }
     
-    private static byte[] compress(byte[] data)
+    public byte[] compress(byte[] data) throws IOException
     {
-        if(data == null)
-        {
-            throw new IllegalArgumentException("data is null");            
-        }
         
-        byte[] output = new byte[1024];
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
         
-        Deflater compresser = new Deflater(Deflater.DEFAULT_COMPRESSION);
+        Deflater d = new Deflater();
+        DeflaterOutputStream dout = new DeflaterOutputStream(baos, d);
+        dout.write(data);
+        dout.close();
         
-        compresser.setInput(data);
-        compresser.finish();
-        int compressedDataLength = compresser.deflate(output);
-        compresser.end();
-        
-        return Arrays.copyOf(output, compressedDataLength);
+        byte[] output = baos.toByteArray();
+        baos.close();
+        return output;
     }
 
     private static byte[] decompress(byte[] input) throws DataFormatException
     {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         
-        Inflater decompresser = new Inflater();        
+        Inflater decompresser = new Inflater(false);
+
         decompresser.setInput(input, 0, input.length);
+        byte[] result = new byte[1024];
         while(!decompresser.finished())
         {
-            byte[] result = new byte[1024];
             int resultLength = decompresser.inflate(result);
             baos.write(result, 0, resultLength);            
         }
         decompresser.end();
         
-        byte[] result = baos.toByteArray();
+        byte[] returnValue = baos.toByteArray();
         try
         {
             baos.close();
         }
         catch (IOException e) { }
-        return result;
+        return returnValue;
     }
 
 }
