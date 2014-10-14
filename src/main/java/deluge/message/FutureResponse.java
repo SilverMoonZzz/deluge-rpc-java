@@ -6,8 +6,13 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import deluge.api.DelugeRPCCallback;
+
 public class FutureResponse implements Future<Response>
 {
+    
+    public DelugeRPCCallback callback;
+    
     public final CountDownLatch latch = new CountDownLatch(1);
     
     private Response response = null;     
