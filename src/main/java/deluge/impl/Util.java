@@ -1,7 +1,6 @@
-package deluge.rpc;
+package deluge.impl;
 
-
-import deluge.net.TorrentField;
+import deluge.impl.net.TorrentField;
 
 public class Util
 {
@@ -9,7 +8,7 @@ public class Util
     {
         return fields;
     }
-    
+
     public static Object[] objects(Object... objects)
     {
         return objects;

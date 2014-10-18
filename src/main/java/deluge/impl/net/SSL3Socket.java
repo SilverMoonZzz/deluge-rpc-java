@@ -1,4 +1,4 @@
-package deluge.net;
+package deluge.impl.net;
 
 import java.io.IOException;
 import java.net.UnknownHostException;
@@ -14,26 +14,28 @@ import javax.net.ssl.TrustManager;
 public class SSL3Socket
 {
 
-    public static SSLSocket createSSLv3Socket(String address, int port) throws KeyManagementException, UnknownHostException, IOException, NoSuchAlgorithmException
+    public static SSLSocket createSSLv3Socket(String address, int port) throws KeyManagementException,
+            UnknownHostException, IOException, NoSuchAlgorithmException
     {
-        TrustManager[] trustAllCerts = new TrustManager[] { new AcceptAllTrustManager() };                     
+        final TrustManager[] trustAllCerts = new TrustManager[] { new AcceptAllTrustManager() };
 
-        SSLContext sc = SSLContext.getInstance("SSLv3");
+        final SSLContext sc = SSLContext.getInstance("SSLv3");
         sc.init(null, trustAllCerts, new java.security.SecureRandom());
-        
-        SSLSocket mySocket = (SSLSocket) sc.getSocketFactory().createSocket(address, port);
 
-        String[] protocols = {"SSLv3"};
+        final SSLSocket mySocket = (SSLSocket) sc.getSocketFactory().createSocket(address, port);
+
+        final String[] protocols = { "SSLv3" };
         mySocket.setEnabledProtocols(protocols);
 
-        mySocket.addHandshakeCompletedListener(new HandshakeCompletedListener() {
+        mySocket.addHandshakeCompletedListener(new HandshakeCompletedListener()
+        {
 
             public void handshakeCompleted(HandshakeCompletedEvent event)
             {
                 System.out.println("Handshake complete");
-            }            
+            }
         });
-        
+
         return mySocket;
     }
 }
