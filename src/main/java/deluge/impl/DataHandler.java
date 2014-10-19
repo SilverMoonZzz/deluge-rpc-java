@@ -36,10 +36,10 @@ public class DataHandler implements DataCallback
     private void sendSpecificResponse(Integer requestId, List<Object> decodedObj)
     {
 
+        final OngoingRequest req = OngoingRequests.remove(requestId);
+        
         try
         {
-            final OngoingRequest req = OngoingRequests.remove(requestId);
-
             switch (req.getType())
             {
                 case INTEGER:
@@ -63,14 +63,19 @@ public class DataHandler implements DataCallback
         }
         catch (final DelugeException e)
         {
-            final DelugeFuture<Response> fut = (DelugeFuture<Response>) OngoingRequests.remove(requestId).getFuture();
+            final DelugeFuture<Response> fut = (DelugeFuture<Response>) req.getFuture();
             fut.onError(e);
         }
         catch (final Exception e)
         {
-            final DelugeFuture<Response> fut = (DelugeFuture<Response>) OngoingRequests.remove(requestId).getFuture();
+            final DelugeFuture<Response> fut = (DelugeFuture<Response>) req.getFuture();
             fut.onServerError(e);
         }
+    }
+    
+    private void onError()
+    {
+        
     }
 
 }

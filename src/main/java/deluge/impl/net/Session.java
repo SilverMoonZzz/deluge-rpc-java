@@ -1,5 +1,8 @@
 package deluge.impl.net;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -13,14 +16,28 @@ import java.util.zip.DataFormatException;
 import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.Inflater;
+import java.util.zip.InflaterInputStream;
 
 import javax.net.ssl.SSLSocket;
+
+import deluge.Util;
 
 public class Session
 {
     public interface DataCallback
     {
         public void dataRecived(byte[] data);
+    }
+
+    public static byte[] decompressByteArray(byte[] data) throws IOException
+    {
+        final InputStream from = new InflaterInputStream(new ByteArrayInputStream(data));
+        final ByteArrayOutputStream to = new ByteArrayOutputStream();
+        Util.copy(from, to);
+        byte[] output = to.toByteArray();
+        from.close();
+        to.close();
+        return output;
     }
 
     private static byte[] decompress(byte[] input) throws DataFormatException
@@ -109,7 +126,8 @@ public class Session
                 {
                     while (Session.this.mySocket != null)
                     {
-                        final InputStream inputStream = Session.this.mySocket.getInputStream();
+
+                        final InputStream inputStream = new BufferedInputStream(Session.this.mySocket.getInputStream());
 
                         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
@@ -117,21 +135,13 @@ public class Session
                         final byte[] buffer = new byte[1024];
                         while ((bytesRead = inputStream.read(buffer)) != -1)
                         {
-                            try
-                            {
-                                baos.write(buffer);
+                            baos.write(buffer);
 
-                                if (bytesRead < 1024)
-                                {
-                                    final byte[] unpacked = Session.decompress(baos.toByteArray());
-                                    baos.reset();
-                                    cb.dataRecived(unpacked);
-                                }
-                            }
-                            catch (final DataFormatException e)
+                            if (bytesRead < 1024)
                             {
-                                // TODO Auto-generated catch block
-                                e.printStackTrace();
+                                final byte[] unpacked = Session.decompressByteArray(baos.toByteArray());
+                                baos.reset();
+                                cb.dataRecived(unpacked);
                             }
                         }
                     }
@@ -198,7 +208,7 @@ public class Session
                             final byte[] x = Session.this.queue.take();
                             packedData = compress(x);
 
-                            final OutputStream out = Session.this.mySocket.getOutputStream();
+                            final OutputStream out = new BufferedOutputStream(Session.this.mySocket.getOutputStream());
                             out.write(packedData);
                             out.flush();
                         }
